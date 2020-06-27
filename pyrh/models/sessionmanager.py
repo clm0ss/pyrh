@@ -9,6 +9,7 @@ import certifi
 import pytz
 import requests
 from marshmallow import Schema, fields, post_load
+from marshmallow.exceptions import ValidationError
 from requests.exceptions import HTTPError
 from requests.structures import CaseInsensitiveDict
 from yarl import URL
@@ -517,9 +518,14 @@ class SessionManagerSchema(BaseSchema):
     """Schema class for the SessionManager model."""
 
     __model__ = SessionManager
-
-    # Call untyped "Email" in typed context
-    username = fields.Email()  # type: ignore
+    
+    # Some users may not be using email for logins so we can attempt to validate as email for username.
+    # otherwise upon validation error assume username string login.
+    try:
+        # Call untyped "Email" in typed context
+        username = fields.Email()  # type: ignore
+    except ValidationError:
+        username = fields.Str()
     password = fields.Str()
     challenge_type = fields.Str(validate=CHALLENGE_TYPE_VAL)
     oauth = fields.Nested(OAuthSchema)
